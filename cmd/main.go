@@ -11,6 +11,9 @@ import (
 	"github.com/joho/godotenv"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
+
+	"CalSync/internal/alfa"
+	"CalSync/internal/gcal"
 )
 
 func main() {
@@ -27,7 +30,7 @@ func main() {
 	}
 
 	// Аутентификация Alfa календаря
-	_, err = alfa.getAlfaCalendarToken(email, alfaApiKey)
+	_, err = alfa.GetAlfaCalendarToken(email, alfaApiKey)
 	if err != nil {
 		log.Fatalf("Unable to authenticate to alfa calendar: %v", err)
 	}
@@ -47,11 +50,11 @@ func main() {
 
 	// Cинхронизация каждые 30 минут
 	s.Every(30).Minutes().Do(func() {
-		err := syncGoogleCalendar(gCalService, email, alfaApiKey)
+		err := gcal.SyncGoogleCalendar(gCalService, email, alfaApiKey)
 		if err != nil {
 			log.Fatalf("Failed to sync googlr calendar: %v", err)
 		} else {
-			err = syncAlfaCalendar(gCalService, email, alfaApiKey)
+			err = alfa.SyncAlfaCalendar(gCalService, email, alfaApiKey)
 			if err != nil {
 				log.Fatalf("Failed to sync googlr calendar: %v", err)
 			} else {

@@ -1,4 +1,4 @@
-module calendar_sync
+module CalSync
 
 go 1.23.1
 

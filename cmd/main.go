@@ -1,6 +1,7 @@
 package main
 
 import (
+	"CalSync/internal/sync"
 	"context"
 	"fmt"
 	"log"
@@ -11,9 +12,6 @@ import (
 	"github.com/joho/godotenv"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
-
-	"CalSync/internal/alfa"
-	"CalSync/internal/gcal"
 )
 
 func main() {
@@ -27,12 +25,6 @@ func main() {
 	alfaApiKey := os.Getenv("API_KEY")
 	if email == "" || alfaApiKey == "" {
 		log.Fatalf("Email or API key is missing in the env/alfacred.env file")
-	}
-
-	// Аутентификация Alfa календаря
-	_, err = alfa.GetAlfaCalendarToken(email, alfaApiKey)
-	if err != nil {
-		log.Fatalf("Unable to authenticate to alfa calendar: %v", err)
 	}
 
 	// Аутентификация Google API
@@ -50,16 +42,11 @@ func main() {
 
 	// Cинхронизация каждые 30 минут
 	s.Every(30).Minutes().Do(func() {
-		err := gcal.SyncGoogleCalendar(gCalService, email, alfaApiKey)
+		err := sync.SyncCalendars(gCalService, email, alfaApiKey)
 		if err != nil {
-			log.Fatalf("Failed to sync googlr calendar: %v", err)
+			log.Fatalf("Failed to sync calendars: %v", err)
 		} else {
-			err = alfa.SyncAlfaCalendar(gCalService, email, alfaApiKey)
-			if err != nil {
-				log.Fatalf("Failed to sync googlr calendar: %v", err)
-			} else {
-				fmt.Println("Calendars synced successfully!")
-			}
+			fmt.Println("Calendars synced successfully!")
 		}
 	})
 

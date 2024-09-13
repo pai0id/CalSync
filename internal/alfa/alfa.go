@@ -3,14 +3,15 @@ package alfa
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
 
 const (
-	apiLoginURL         = "https://musicwave.s20.online/v2api/auth/login"
-	apiLessonURL        = "https://musicwave.s20.online/v2api/1/lesson/index"
-	apiRegularLessonURL = "https://musicwave.s20.online/v2api/1/regular-lesson/index"
+	apiLoginURL         = "https://musicalwave.s20.online/v2api/auth/login"
+	apiLessonURL        = "https://musicalwave.s20.online/v2api/1/lesson/index"
+	apiRegularLessonURL = "https://musicalwave.s20.online/v2api/1/regular-lesson/index"
 )
 
 func GetAPIToken(email, apiKey string) (string, error) {
@@ -29,6 +30,9 @@ func GetAPIToken(email, apiKey string) (string, error) {
 	defer resp.Body.Close()
 
 	log.Printf("GetAPIToken: request response code %d\n", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GetAPIToken: response code %d", resp.StatusCode)
+	}
 
 	var authResp AuthResponse
 	err = json.NewDecoder(resp.Body).Decode(&authResp)
@@ -66,6 +70,9 @@ func GetLessons(token string) ([]LessonItem, error) {
 	defer resp.Body.Close()
 
 	log.Printf("GetLessons: request response code %d\n", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GetAPIToken: response code %d", resp.StatusCode)
+	}
 
 	var lessonResp LessonResponse
 	err = json.NewDecoder(resp.Body).Decode(&lessonResp)
@@ -103,6 +110,9 @@ func GetRegularLessons(token string) ([]RegularLessonItem, error) {
 	defer resp.Body.Close()
 
 	log.Printf("GetLessons: request response code %d\n", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GetAPIToken: response code %d", resp.StatusCode)
+	}
 
 	var regularLessonResp RegularLessonResponse
 	err = json.NewDecoder(resp.Body).Decode(&regularLessonResp)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -16,7 +15,12 @@ import (
 )
 
 const tokenFile = "env/token.json"
-const calendarID = "c3aa27d84ad2921ebe2e97f163d69cf3b930292822267de4a2c808661cda8fcf@group.calendar.google.com"
+
+var calendarIDs = []string{
+	"c3aa27d84ad2921ebe2e97f163d69cf3b930292822267de4a2c808661cda8fcf@group.calendar.google.com", // 01 - Pro
+	"8b218d7a47971ddddd851a867cfb558cfaf555d189e7555c1229aea777c9a03f@group.calendar.google.com", // 02 - G Labs
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 01 - V Labs
+}
 
 func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
@@ -89,25 +93,29 @@ func GetService(ctx context.Context, creds []byte) (*calendar.Service, error) {
 	return srv, nil
 }
 
-func GetLessons(srv *calendar.Service) {
+// Получение занятий из календаря по его id (если calId == -1 -> все занятия)
+func GetLessons(srv *calendar.Service, calId int) ([]*calendar.Event, error) {
+	var lessons []*calendar.Event
 	t := time.Now().Format(time.RFC3339)
 
-	events, err := srv.Events.List(calendarID).ShowDeleted(false).
-		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve events from calendar: %v", err)
-	}
-
-	fmt.Println("Upcoming events:")
-	if len(events.Items) == 0 {
-		fmt.Println("No upcoming events found.")
-	} else {
-		for _, item := range events.Items {
-			date := item.Start.DateTime
-			if date == "" {
-				date = item.Start.Date
+	if calId == -1 {
+		for _, id := range calendarIDs {
+			events, err := srv.Events.List(id).ShowDeleted(false).
+				SingleEvents(true).TimeMin(t).MaxResults(100).OrderBy("startTime").Do()
+			if err != nil {
+				return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
 			}
-			fmt.Printf("%s (%s)\n", item.Summary, date)
+
+			lessons = append(lessons, events.Items...)
 		}
+	} else {
+		events, err := srv.Events.List(calendarIDs[calId]).ShowDeleted(false).
+			SingleEvents(true).TimeMin(t).MaxResults(100).OrderBy("startTime").Do()
+		if err != nil {
+			return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
+		}
+
+		lessons = events.Items
 	}
+	return lessons, nil
 }

@@ -14,6 +14,29 @@ const (
 	apiRegularLessonURL = "https://musicalwave.s20.online/v2api/1/regular-lesson/index"
 )
 
+var roomIds = []int{
+	1,  // 01 - Pro
+	6,  // 02 - G Labs
+	11, // 03 - V Labs
+	19, // 04 - V+Pro
+	5,  // 06 - VP+Pro
+	12, // 07 - VGP
+	7,  // 08 - Vocal + G
+	16, // Зал loft
+	37, // ОПЛОТ - игровая
+	38, // ОПЛОТ - мастеровая
+}
+
+func filterByRoomID[T Lesson](items []T, roomID int) []T {
+	var filteredItems []T
+	for _, item := range items {
+		if item.GetRoomID() == roomID {
+			filteredItems = append(filteredItems, item)
+		}
+	}
+	return filteredItems
+}
+
 func GetAPIToken(email, apiKey string) (string, error) {
 	authReq := AuthRequest{Email: email, APIKey: apiKey}
 	reqBody, err := json.Marshal(authReq)
@@ -45,7 +68,8 @@ func GetAPIToken(email, apiKey string) (string, error) {
 	return authResp.Token, nil
 }
 
-func GetLessons(token string) ([]LessonItem, error) {
+// Получение занятий из календаря по его id (если calId == -1 -> все занятия)
+func GetLessons(token string, calId int) ([]LessonItem, error) {
 	lessonReq := LessonRequest{Status: 1, Page: 0}
 	reqBody, err := json.Marshal(lessonReq)
 	if err != nil {
@@ -82,10 +106,15 @@ func GetLessons(token string) ([]LessonItem, error) {
 
 	log.Println("GetLessons: lessons recieved successfully")
 
+	if calId != -1 {
+		return filterByRoomID(lessonResp.Items, roomIds[calId]), nil
+	}
+
 	return lessonResp.Items, nil
 }
 
-func GetRegularLessons(token string) ([]RegularLessonItem, error) {
+// Получение регулярных занятий из календаря по его id (если calId == -1 -> все занятия)
+func GetRegularLessons(token string, calId int) ([]RegularLessonItem, error) {
 	regLessonReq := RegularLessonRequest{Page: 0}
 	reqBody, err := json.Marshal(regLessonReq)
 	if err != nil {
@@ -121,6 +150,10 @@ func GetRegularLessons(token string) ([]RegularLessonItem, error) {
 	}
 
 	log.Println("GetRegularLessons: lessons recieved successfully")
+
+	if calId != -1 {
+		return filterByRoomID(regularLessonResp.Items, roomIds[calId]), nil
+	}
 
 	return regularLessonResp.Items, nil
 }

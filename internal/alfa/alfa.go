@@ -18,6 +18,8 @@ const (
 	apiGroupURL         = "https://musicalwave.s20.online/v2api/1/group/index"
 )
 
+const apiLessonCreateURL = "https://musicalwave.s20.online/v2api/1/lesson/create"
+
 const tokenHeader = "X-ALFACRM-TOKEN"
 
 var roomIds = []int{
@@ -183,7 +185,7 @@ func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error
 		}
 		res = append(res, logic.Lesson{
 			Name:     names[i],
-			Date:     date.In(location).Add(time.Hour * -3),
+			Date:     date.Truncate(24 * time.Hour).In(location).Add(time.Hour * -3),
 			CalId:    getCalId(l.RoomId),
 			TimeFrom: timeFrom.In(location).Add(time.Hour * -3),
 			TimeTo:   timeTo.In(location).Add(time.Hour * -3),
@@ -194,6 +196,13 @@ func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error
 
 func getDatesForDayOfWeek(start, end time.Time, targetDay time.Weekday) []time.Time {
 	var dates []time.Time
+
+	if start.Before(time.Now()) {
+		start = time.Now()
+	}
+	if end.After(time.Now().AddDate(0, 1, 0)) {
+		end = time.Now().AddDate(0, 1, 0)
+	}
 
 	if start.After(end) {
 		return dates
@@ -238,7 +247,7 @@ func convertRegularLessons(lessons []regularLessonItem, names []string) ([]logic
 			}
 			res = append(res, logic.Lesson{
 				Name:     names[i],
-				Date:     date.In(location).Add(time.Hour * -3),
+				Date:     date.Truncate(24 * time.Hour).In(location).Add(time.Hour * -3),
 				CalId:    getCalId(l.RoomId),
 				TimeFrom: timeFrom.In(location).Add(time.Hour * -3),
 				TimeTo:   timeTo.In(location).Add(time.Hour * -3),
@@ -254,7 +263,7 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 
 	lessonReq := lessonRequest{Status: 1, Page: 0,
 		DateTo:   time.Now().AddDate(0, 1, 0).Format("2006-01-02"),
-		DateFrom: time.Now().AddDate(0, -1, 0).Format("2006-01-02"),
+		DateFrom: time.Now().Format("2006-01-02"),
 	}
 	lessonResp := lessonResponse{}
 
@@ -398,5 +407,13 @@ func UpdateGroups(token string) error {
 	}
 
 	log.Println("UpdateGroups: mapped groups")
+	return nil
+}
+
+func createLesson(token string, lesson logic.Lesson) error {
+	return nil
+}
+
+func AddEvents(token string, lessons []logic.Lesson) error {
 	return nil
 }

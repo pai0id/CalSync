@@ -90,6 +90,16 @@ type charItem struct {
 	Name string `json:"name"`
 }
 
+type createLessonRequest struct {
+	Topic        string `json:"topic"`
+	LessonDate   string `json:"lesson_date"`
+	RoomId       int    `json:"room_id"`
+	TimeFrom     string `json:"time_from"`
+	Duration     int    `json:"duration"`
+	LessonTypeId int    `json:"lesson_type_id"`
+	SubjectId    int    `json:"subject_id"`
+}
+
 func (l lessonItem) getRoomID() int {
 	return l.RoomId
 }

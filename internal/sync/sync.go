@@ -53,5 +53,8 @@ func SyncCalendars(gCalCreds []byte, email, alfaApiKey string) error {
 		return fmt.Errorf("error at SyncCalendars: %w", err)
 	}
 
+	// fmt.Println(gAdd)
+	// fmt.Println(aAdd)
+
 	return nil
 }

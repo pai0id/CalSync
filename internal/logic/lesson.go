@@ -23,7 +23,7 @@ func RemoveCommonElements(arr1, arr2 []Lesson) ([]Lesson, []Lesson) {
 	contains := func(slice []Lesson, value Lesson) bool {
 		for _, v := range slice {
 			if v.Date.Equal(value.Date) && v.CalId == value.CalId &&
-				v.TimeFrom.Equal(value.TimeFrom) && v.TimeTo.Equal(value.TimeTo) {
+				v.TimeFrom.Equal(value.TimeFrom) {
 				return true
 			}
 		}

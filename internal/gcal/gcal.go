@@ -18,16 +18,16 @@ import (
 const tokenFile = "env/token.json"
 
 var calendarIDs = []string{
-	"c3aa27d84ad2921ebe2e97f163d69cf3b930292822267de4a2c808661cda8fcf@group.calendar.google.com", // 01 - Pro
-	"8b218d7a47971ddddd851a867cfb558cfaf555d189e7555c1229aea777c9a03f@group.calendar.google.com", // 02 - G Labs
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 03 - V Labs
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 04 - V+Pro
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 06 - VP+Pro
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 07 - VGP
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 08 - Vocal + G
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // Зал loft
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // ОПЛОТ - игровая
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // ОПЛОТ - мастеровая
+	"50c82426236347be525723d287c83a20de8b336689c7bcbdc62c2197249f2d7b@group.calendar.google.com", // 01 - Pro
+	"e094039b8c6a95961d567523fdf8586f984c5d445b4131d9c1be62511cbbbe84@group.calendar.google.com", // 02 - G Labs
+	"5bce8f738c60fc06c5b4eba02c21b38b55f00146c069f8f1447b0dd27e562a8f@group.calendar.google.com", // 03 - V Labs
+	"9e1ad33080757c217c4648f6d8c28b23f652a2c8419533fe77d93465088b91de@group.calendar.google.com", // 04 - V+Pro
+	"3ddce7e25bee8475a47b21fa7f19e3d6188b8501ee1b0eafe90ce561737e6ef2@group.calendar.google.com", // 06 - VP+Pro
+	"3da901d09b590abbbbdb77651ae2e8ff1ace46c7e51d10a32d9509f66c55ac33@group.calendar.google.com", // 07 - VGP
+	"5cfd1da735d9c354ac4c45024056289e29c580d6effe60a2139819c24b14bbc9@group.calendar.google.com", // 08 - Vocal + G
+	"3e9dca44aec311959f94fadf8bb356c2dec2bdf6c82c44ac8af545357d86a2f8@group.calendar.google.com", // Зал loft
+	"896e972cd329cc65d4fb0320a1fba1fe3a0e71804e7c64563da54d4558819787@group.calendar.google.com", // ОПЛОТ - игровая
+	"2d62001c42ee5c946a2febf2438f51e3ec3a3530319b23f681ded5797db63c47@group.calendar.google.com", // ОПЛОТ - мастеровая
 }
 
 func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
@@ -114,7 +114,7 @@ func convertGoogleEventToLesson(event *calendar.Event, calId int) (*logic.Lesson
 
 	lesson := &logic.Lesson{
 		Name:     event.Summary,
-		Date:     startTime,
+		Date:     startTime.Truncate(24 * time.Hour),
 		CalId:    calId,
 		TimeFrom: startTime,
 		TimeTo:   endTime,
@@ -132,7 +132,7 @@ func GetLessons(srv *calendar.Service, calId int) ([]logic.Lesson, error) {
 	if calId == -1 {
 		for i, id := range calendarIDs {
 			events, err := srv.Events.List(id).ShowDeleted(false).
-				SingleEvents(true).TimeMin(t).MaxResults(100).OrderBy("startTime").Do()
+				SingleEvents(true).TimeMin(t).TimeMax(time.Now().AddDate(0, 1, 0).Format(time.RFC3339)).OrderBy("startTime").Do()
 			if err != nil {
 				return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
 			}
@@ -147,7 +147,7 @@ func GetLessons(srv *calendar.Service, calId int) ([]logic.Lesson, error) {
 		}
 	} else {
 		events, err := srv.Events.List(calendarIDs[calId]).ShowDeleted(false).
-			SingleEvents(true).TimeMin(t).OrderBy("startTime").Do()
+			SingleEvents(true).TimeMin(t).TimeMax(time.Now().AddDate(0, 1, 0).Format(time.RFC3339)).OrderBy("startTime").Do()
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
 		}

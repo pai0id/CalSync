@@ -46,15 +46,17 @@ func SyncCalendars(gCalCreds []byte, email, alfaApiKey string) error {
 		return fmt.Errorf("error at SyncCalendars: %w", err)
 	}
 
-	gAdd, _ := logic.RemoveCommonElements(aLessons, gLessons)
+	gAdd, aAdd := logic.RemoveCommonElements(aLessons, gLessons)
 
 	err = gcal.AddEvents(context.Background(), gcalService, gAdd)
 	if err != nil {
 		return fmt.Errorf("error at SyncCalendars: %w", err)
 	}
 
-	// fmt.Println(gAdd)
-	// fmt.Println(aAdd)
+	err = alfa.AddEvents(token, aAdd)
+	if err != nil {
+		return fmt.Errorf("error at SyncCalendars: %w", err)
+	}
 
 	return nil
 }

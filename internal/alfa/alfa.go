@@ -55,6 +55,16 @@ func filterByRoomID[T lesson](items []T, roomID int) []T {
 	return filteredItems
 }
 
+func filter[T lesson](items []T) []T {
+	var filteredItems []T
+	for _, item := range items {
+		if getCalId(item.getRoomID()) != -1 {
+			filteredItems = append(filteredItems, item)
+		}
+	}
+	return filteredItems
+}
+
 func GetAPIToken(email, apiKey string) (string, error) {
 	authReq := authRequest{Email: email, APIKey: apiKey}
 	reqBody, err := json.Marshal(authReq)
@@ -264,6 +274,8 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 
 	if calId != -1 {
 		lessons = filterByRoomID(lessons, roomIds[calId])
+	} else {
+		lessons = filter(lessons)
 	}
 
 	var names = make([]string, 0, len(lessons))
@@ -316,6 +328,8 @@ func GetRegularLessons(token string, calId int) ([]logic.Lesson, error) {
 
 	if calId != -1 {
 		lessons = filterByRoomID(lessons, roomIds[calId])
+	} else {
+		lessons = filter(lessons)
 	}
 
 	var names = make([]string, 0, len(lessons))

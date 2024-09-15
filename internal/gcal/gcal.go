@@ -70,7 +70,7 @@ func saveToken(path string, token *oauth2.Token) error {
 }
 
 func getClient(creds []byte) (*http.Client, error) {
-	config, err := google.ConfigFromJSON(creds, calendar.CalendarReadonlyScope)
+	config, err := google.ConfigFromJSON(creds, calendar.CalendarScope)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse client secret file to config: %w", err)
 	}
@@ -162,4 +162,26 @@ func GetLessons(srv *calendar.Service, calId int) ([]logic.Lesson, error) {
 	}
 
 	return lessons, nil
+}
+
+func AddEvents(ctx context.Context, service *calendar.Service, lessons []logic.Lesson) error {
+	for _, lesson := range lessons {
+		calendarID := calendarIDs[lesson.CalId]
+
+		event := &calendar.Event{
+			Summary:     lesson.Name,
+			Start:       &calendar.EventDateTime{DateTime: lesson.TimeFrom.Format(time.RFC3339), TimeZone: "UTC"},
+			End:         &calendar.EventDateTime{DateTime: lesson.TimeTo.Format(time.RFC3339), TimeZone: "UTC"},
+			Description: fmt.Sprintf("Event scheduled for %s", lesson.Date.Format("2006-01-02")),
+		}
+
+		_, err := service.Events.Insert(calendarID, event).Context(ctx).Do()
+		if err != nil {
+			return fmt.Errorf("could not insert event %s into calendar %s: %v", lesson.Name, calendarID, err)
+		}
+
+		fmt.Printf("Added event '%s' to calendar '%s'\n", lesson.Name, calendarID)
+	}
+
+	return nil
 }

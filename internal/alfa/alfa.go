@@ -187,8 +187,8 @@ func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error
 			Name:     names[i],
 			Date:     date.Truncate(24 * time.Hour).In(location).Add(time.Hour * -3),
 			CalId:    getCalId(l.RoomId),
-			TimeFrom: timeFrom.In(location).Add(time.Hour * -3),
-			TimeTo:   timeTo.In(location).Add(time.Hour * -3),
+			TimeFrom: timeFrom.In(location).Add(time.Hour * -3).Truncate(time.Minute),
+			TimeTo:   timeTo.In(location).Add(time.Hour * -3).Truncate(time.Minute),
 		})
 	}
 	return res, nil
@@ -196,12 +196,13 @@ func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error
 
 func getDatesForDayOfWeek(start, end time.Time, targetDay time.Weekday) []time.Time {
 	var dates []time.Time
+	var t = time.Now().Truncate(24 * time.Hour)
 
-	if start.Before(time.Now()) {
-		start = time.Now()
+	if start.Before(t) {
+		start = t
 	}
-	if end.After(time.Now().AddDate(0, 1, 0)) {
-		end = time.Now().AddDate(0, 1, 0)
+	if end.After(t.AddDate(0, 0, 7)) {
+		end = t.AddDate(0, 0, 7)
 	}
 
 	if start.After(end) {
@@ -249,8 +250,8 @@ func convertRegularLessons(lessons []regularLessonItem, names []string) ([]logic
 				Name:     names[i],
 				Date:     date.Truncate(24 * time.Hour).In(location).Add(time.Hour * -3),
 				CalId:    getCalId(l.RoomId),
-				TimeFrom: timeFrom.In(location).Add(time.Hour * -3),
-				TimeTo:   timeTo.In(location).Add(time.Hour * -3),
+				TimeFrom: timeFrom.In(location).Add(time.Hour * -3).Truncate(time.Minute),
+				TimeTo:   timeTo.In(location).Add(time.Hour * -3).Truncate(time.Minute),
 			})
 		}
 	}
@@ -259,11 +260,13 @@ func convertRegularLessons(lessons []regularLessonItem, names []string) ([]logic
 
 // Получение занятий из календаря по его id (если calId == -1 -> все занятия)
 func GetLessons(token string, calId int) ([]logic.Lesson, error) {
+	t := time.Now().Truncate(24 * time.Hour)
 	log.Println("GetLessons: start")
+	var res []logic.Lesson
 
 	lessonReq := lessonRequest{Status: 1, Page: 0,
-		DateTo:   time.Now().AddDate(0, 1, 0).Format("2006-01-02"),
-		DateFrom: time.Now().Format("2006-01-02"),
+		DateTo:   t.AddDate(0, 0, 7).Format("2006-01-02"),
+		DateFrom: t.Format("2006-01-02"),
 	}
 	lessonResp := lessonResponse{}
 
@@ -304,7 +307,7 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 
 	log.Println("GetLessons: convert")
 
-	res, err := convertLessons(lessons, names)
+	res, err = convertLessons(lessons, names)
 	if err != nil {
 		return nil, fmt.Errorf("GetLessons: %w", err)
 	}
@@ -411,9 +414,50 @@ func UpdateGroups(token string) error {
 }
 
 func createLesson(token string, lesson logic.Lesson) error {
+	reqStruct := createLessonRequest{
+		Topic:        lesson.Name,
+		LessonDate:   lesson.Date.Format("02.01.2006"),
+		RoomId:       roomIds[lesson.CalId],
+		TimeFrom:     lesson.TimeFrom.Format("15:04"),
+		Duration:     int(lesson.TimeTo.Sub(lesson.TimeFrom).Minutes()),
+		LessonTypeId: 5,
+		SubjectId:    118,
+	}
+
+	reqBody, err := json.Marshal(reqStruct)
+	if err != nil {
+		return fmt.Errorf("createLesson: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", apiLessonCreateURL, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return fmt.Errorf("createLesson: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(tokenHeader, token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("createLesson: %w", err)
+	}
+	defer resp.Body.Close()
+
+	log.Printf("createLesson: request response code %d\n", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("createLesson: response code %d", resp.StatusCode)
+	}
+
 	return nil
 }
 
 func AddEvents(token string, lessons []logic.Lesson) error {
+	for _, lesson := range lessons {
+		err := createLesson(token, lesson)
+		if err != nil {
+			return fmt.Errorf("AddEvents: %w", err)
+		}
+	}
 	return nil
 }

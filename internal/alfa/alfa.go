@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 const (
@@ -31,6 +32,9 @@ var roomIds = []int{
 	37, // ОПЛОТ - игровая
 	38, // ОПЛОТ - мастеровая
 }
+
+var customers = map[int]string{}
+var groups = map[int]string{}
 
 func getCalId(roomId int) int {
 	for i, v := range roomIds {
@@ -118,68 +122,130 @@ func processIndexRequest(token, url string, reqStruct indexRequest, respStruct i
 	return nil
 }
 
-func sendIndexRequest(token, url string, reqStruct indexRequest, lessonRespStruct indexResponse) ([]interface{}, error) {
+func sendIndexRequest(token, url string, reqStruct indexRequest, respStruct indexResponse) ([]interface{}, error) {
 	page := 0
 	reqStruct.setPage(page)
 
-	err := processIndexRequest(token, url, reqStruct, lessonRespStruct)
+	err := processIndexRequest(token, url, reqStruct, respStruct)
 	if err != nil {
 		return nil, fmt.Errorf("sendIndexRequest: %w", err)
 	}
 
-	items := make([]interface{}, 0, lessonRespStruct.getTotal())
-	items = append(items, lessonRespStruct.getItems()...)
-	total := lessonRespStruct.getTotal() - lessonRespStruct.getCount()
+	items := make([]interface{}, 0, respStruct.getTotal())
+	items = append(items, respStruct.getItems()...)
+	total := respStruct.getTotal() - respStruct.getCount()
 
 	for total > 0 {
 		page++
 		reqStruct.setPage(page)
 
-		err = processIndexRequest(token, url, reqStruct, lessonRespStruct)
+		err = processIndexRequest(token, url, reqStruct, respStruct)
 		if err != nil {
 			return nil, fmt.Errorf("sendIndexRequest: %w", err)
 		}
 
-		items = append(items, lessonRespStruct.getItems()...)
-		total -= lessonRespStruct.getCount()
+		items = append(items, respStruct.getItems()...)
+		total -= respStruct.getCount()
 	}
 
 	return items, nil
 }
 
-func convertLessons(lessons []lessonItem) []logic.Lesson {
+func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error) {
 	var res = []logic.Lesson{}
-	for _, l := range lessons {
+	location, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		fmt.Println("Error loading location:", err)
+		return nil, fmt.Errorf("error loading location: %w", err)
+	}
+	for i, l := range lessons {
+		date, err := time.Parse("2006-01-02", l.Date)
+		if err != nil {
+			return nil, fmt.Errorf("convertLessons: %w", err)
+		}
+		timeFrom, err := time.Parse("2006-01-02 15:04:05", l.TimeFrom)
+		if err != nil {
+			return nil, fmt.Errorf("convertLessons: %w", err)
+		}
+		timeTo, err := time.Parse("2006-01-02 15:04:05", l.TimeTo)
+		if err != nil {
+			return nil, fmt.Errorf("convertLessons: %w", err)
+		}
 		res = append(res, logic.Lesson{
-			Name:     l.Name,
-			Date:     l.Date,
+			Name:     names[i],
+			Date:     date.In(location).Add(time.Hour * -3),
 			CalId:    getCalId(l.RoomId),
-			TimeFrom: l.TimeFrom,
-			TimeTo:   l.TimeTo,
+			TimeFrom: timeFrom.In(location).Add(time.Hour * -3),
+			TimeTo:   timeTo.In(location).Add(time.Hour * -3),
 		})
 	}
-	return res
+	return res, nil
 }
 
-func convertRegularLessons(lessons []regularLessonItem, names []string) []logic.Lesson {
-	var res = []logic.Lesson{}
-	for i, l := range lessons {
-		res = append(res, logic.Lesson{
-			Name: names[i],
-			// Date:     l.Date,
-			CalId:    getCalId(l.RoomId),
-			TimeFrom: l.TimeFrom,
-			TimeTo:   l.TimeTo,
-		})
+func getDatesForDayOfWeek(start, end time.Time, targetDay time.Weekday) []time.Time {
+	var dates []time.Time
+
+	if start.After(end) {
+		return dates
 	}
-	return res
+
+	for start.Weekday() != targetDay {
+		start = start.AddDate(0, 0, 1)
+	}
+
+	for !start.After(end) {
+		dates = append(dates, start)
+		start = start.AddDate(0, 0, 7)
+	}
+
+	return dates
+}
+
+func convertRegularLessons(lessons []regularLessonItem, names []string) ([]logic.Lesson, error) {
+	var res = []logic.Lesson{}
+	location, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		fmt.Println("Error loading location:", err)
+		return nil, fmt.Errorf("error loading location: %w", err)
+	}
+	for i, l := range lessons {
+		dateFrom, err := time.Parse("2006-01-02", l.BegDate)
+		if err != nil {
+			return nil, fmt.Errorf("convertLessons: %w", err)
+		}
+		dateTo, err := time.Parse("2006-01-02", l.EndDate)
+		if err != nil {
+			return nil, fmt.Errorf("convertLessons: %w", err)
+		}
+		for _, date := range getDatesForDayOfWeek(dateFrom, dateTo, time.Weekday(l.Day%7)) {
+			timeFrom, err := time.Parse("2006-01-02 15:04", date.Format("2006-01-02")+" "+l.TimeFrom)
+			if err != nil {
+				return nil, fmt.Errorf("convertLessons: %w", err)
+			}
+			timeTo, err := time.Parse("2006-01-02 15:04", date.Format("2006-01-02")+" "+l.TimeTo)
+			if err != nil {
+				return nil, fmt.Errorf("convertLessons: %w", err)
+			}
+			res = append(res, logic.Lesson{
+				Name:     names[i],
+				Date:     date.In(location).Add(time.Hour * -3),
+				CalId:    getCalId(l.RoomId),
+				TimeFrom: timeFrom.In(location).Add(time.Hour * -3),
+				TimeTo:   timeTo.In(location).Add(time.Hour * -3),
+			})
+		}
+	}
+	return res, nil
 }
 
 // Получение занятий из календаря по его id (если calId == -1 -> все занятия)
 func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 	log.Println("GetLessons: start")
 
-	lessonReq := lessonRequest{Status: 1, Page: 0}
+	lessonReq := lessonRequest{Status: 1, Page: 0,
+		DateTo:   time.Now().AddDate(0, 1, 0).Format("2006-01-02"),
+		DateFrom: time.Now().AddDate(0, -1, 0).Format("2006-01-02"),
+	}
 	lessonResp := lessonResponse{}
 
 	items, err := sendIndexRequest(token, apiLessonURL, &lessonReq, &lessonResp)
@@ -200,9 +266,31 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 		lessons = filterByRoomID(lessons, roomIds[calId])
 	}
 
+	var names = make([]string, 0, len(lessons))
+	for _, l := range lessons {
+		name := ""
+		for _, c := range l.Customers {
+			name = fmt.Sprintf("%s %s", name, customers[c])
+		}
+		for _, g := range l.Groups {
+			name = fmt.Sprintf("%s %s", name, groups[g])
+		}
+		if name == "" {
+			name = "Занятие"
+		}
+		names = append(names, name)
+	}
+
+	log.Println("GetLessons: convert")
+
+	res, err := convertLessons(lessons, names)
+	if err != nil {
+		return nil, fmt.Errorf("GetLessons: %w", err)
+	}
+
 	log.Println("GetLessons: end")
 
-	return convertLessons(lessons), nil
+	return res, nil
 }
 
 // Получение регулярных занятий из календаря по его id (если calId == -1 -> все занятия)
@@ -230,45 +318,7 @@ func GetRegularLessons(token string, calId int) ([]logic.Lesson, error) {
 		lessons = filterByRoomID(lessons, roomIds[calId])
 	}
 
-	charReq := charRequest{Page: 0}
-	charResp := charResponse{}
-
-	items, err = sendIndexRequest(token, apiCustomerURL, &charReq, &charResp)
-	if err != nil {
-		return nil, fmt.Errorf("GetRegularLessons: %w", err)
-	}
-
-	log.Println("GetRegularLessons: customers recieved successfully")
-
-	var customers = make(map[int]string, len(items))
-	for _, item := range items {
-		if item, ok := item.(charItem); ok {
-			customers[item.ID] = item.Name
-		}
-	}
-
-	log.Println("GetRegularLessons: mapped customers")
-
-	charReq = charRequest{Page: 0}
-	charResp = charResponse{}
-
-	items, err = sendIndexRequest(token, apiGroupURL, &charReq, &charResp)
-	if err != nil {
-		return nil, fmt.Errorf("GetRegularLessons: %w", err)
-	}
-
-	log.Println("GetRegularLessons: groups recieved successfully")
-
-	var groups = make(map[int]string, len(items))
-	for _, item := range items {
-		if item, ok := item.(charItem); ok {
-			groups[item.ID] = item.Name
-		}
-	}
-
-	log.Println("GetRegularLessons: mapped groups")
-
-	var names = []string{}
+	var names = make([]string, 0, len(lessons))
 	for _, l := range lessons {
 		if l.RelatedClass == customerClass {
 			names = append(names, customers[l.RelatedId])
@@ -279,7 +329,60 @@ func GetRegularLessons(token string, calId int) ([]logic.Lesson, error) {
 		}
 	}
 
+	log.Println("GetRegularLessons: convert")
+
+	res, err := convertRegularLessons(lessons, names)
+	if err != nil {
+		return nil, fmt.Errorf("GetRegularLessons: %w", err)
+	}
+
 	log.Println("GetRegularLessons: end")
 
-	return convertRegularLessons(lessons, names), nil
+	return res, nil
+}
+
+func UpdateCustomers(token string) error {
+	charReq := charRequest{Page: 0}
+	charResp := charResponse{}
+
+	items, err := sendIndexRequest(token, apiCustomerURL, &charReq, &charResp)
+	if err != nil {
+		return fmt.Errorf("UpdateCustomers: %w", err)
+	}
+
+	log.Println("UpdateCustomers: customers recieved successfully")
+
+	for _, item := range items {
+		if item, ok := item.(charItem); ok {
+			if _, exists := customers[item.ID]; !exists {
+				customers[item.ID] = item.Name
+			}
+		}
+	}
+
+	log.Println("UpdateCustomers: mapped customers")
+	return nil
+}
+
+func UpdateGroups(token string) error {
+	charReq := charRequest{Page: 0}
+	charResp := charResponse{}
+
+	items, err := sendIndexRequest(token, apiGroupURL, &charReq, &charResp)
+	if err != nil {
+		return fmt.Errorf("UpdateGroups: %w", err)
+	}
+
+	log.Println("UpdateGroups: groups recieved successfully")
+
+	for _, item := range items {
+		if item, ok := item.(charItem); ok {
+			if _, exists := groups[item.ID]; !exists {
+				groups[item.ID] = item.Name
+			}
+		}
+	}
+
+	log.Println("UpdateGroups: mapped groups")
+	return nil
 }

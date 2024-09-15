@@ -19,8 +19,10 @@ type indexRequest interface {
 }
 
 type lessonRequest struct {
-	Status int `json:"status"`
-	Page   int `json:"page"`
+	Status   int    `json:"status"`
+	Page     int    `json:"page"`
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
 }
 
 type regularLessonRequest struct {
@@ -59,12 +61,13 @@ type charResponse struct {
 }
 
 type lessonItem struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Date     string `json:"date"`
-	RoomId   int    `json:"room_id"`
-	TimeFrom string `json:"time_from"`
-	TimeTo   string `json:"time_to"`
+	ID        int    `json:"id"`
+	Groups    []int  `json:"group_ids"`
+	Customers []int  `json:"customer_ids"`
+	Date      string `json:"date"`
+	RoomId    int    `json:"room_id"`
+	TimeFrom  string `json:"time_from"`
+	TimeTo    string `json:"time_to"`
 }
 
 const customerClass = "Customer"

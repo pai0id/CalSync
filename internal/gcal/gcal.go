@@ -1,6 +1,7 @@
 package gcal
 
 import (
+	"CalSync/internal/logic"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -19,7 +20,14 @@ const tokenFile = "env/token.json"
 var calendarIDs = []string{
 	"c3aa27d84ad2921ebe2e97f163d69cf3b930292822267de4a2c808661cda8fcf@group.calendar.google.com", // 01 - Pro
 	"8b218d7a47971ddddd851a867cfb558cfaf555d189e7555c1229aea777c9a03f@group.calendar.google.com", // 02 - G Labs
-	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 01 - V Labs
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 03 - V Labs
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 04 - V+Pro
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 06 - VP+Pro
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 07 - VGP
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // 08 - Vocal + G
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // Зал loft
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // ОПЛОТ - игровая
+	"d777f17fae186c081e02122ac5142100ffb861293a21b5b9606a370bf05439b0@group.calendar.google.com", // ОПЛОТ - мастеровая
 }
 
 func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
@@ -93,29 +101,65 @@ func GetService(ctx context.Context, creds []byte) (*calendar.Service, error) {
 	return srv, nil
 }
 
+func convertGoogleEventToLesson(event *calendar.Event, calId int) (*logic.Lesson, error) {
+	startTime, err := time.Parse(time.RFC3339, event.Start.DateTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing start time: %v", err)
+	}
+
+	endTime, err := time.Parse(time.RFC3339, event.End.DateTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing end time: %v", err)
+	}
+
+	lesson := &logic.Lesson{
+		Name:     event.Summary,
+		Date:     startTime,
+		CalId:    calId,
+		TimeFrom: startTime,
+		TimeTo:   endTime,
+	}
+
+	return lesson, nil
+}
+
 // Получение занятий из календаря по его id (если calId == -1 -> все занятия)
-func GetLessons(srv *calendar.Service, calId int) ([]*calendar.Event, error) {
-	var lessons []*calendar.Event
+func GetLessons(srv *calendar.Service, calId int) ([]logic.Lesson, error) {
+	var lessons []logic.Lesson
+
 	t := time.Now().Format(time.RFC3339)
 
 	if calId == -1 {
-		for _, id := range calendarIDs {
+		for i, id := range calendarIDs {
 			events, err := srv.Events.List(id).ShowDeleted(false).
 				SingleEvents(true).TimeMin(t).MaxResults(100).OrderBy("startTime").Do()
 			if err != nil {
 				return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
 			}
 
-			lessons = append(lessons, events.Items...)
+			for _, e := range events.Items {
+				lesson, err := convertGoogleEventToLesson(e, i)
+				if err != nil {
+					return nil, fmt.Errorf("error converting event to lesson: %w", err)
+				}
+				lessons = append(lessons, *lesson)
+			}
 		}
 	} else {
 		events, err := srv.Events.List(calendarIDs[calId]).ShowDeleted(false).
-			SingleEvents(true).TimeMin(t).MaxResults(100).OrderBy("startTime").Do()
+			SingleEvents(true).TimeMin(t).OrderBy("startTime").Do()
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
 		}
 
-		lessons = events.Items
+		for _, e := range events.Items {
+			lesson, err := convertGoogleEventToLesson(e, calId)
+			if err != nil {
+				return nil, fmt.Errorf("error converting event to lesson: %w", err)
+			}
+			lessons = append(lessons, *lesson)
+		}
 	}
+
 	return lessons, nil
 }

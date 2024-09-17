@@ -6,3 +6,6 @@ build:
 
 tidy:
 	@go mod tidy
+
+clean_cals:
+	python3 clean_cal.py

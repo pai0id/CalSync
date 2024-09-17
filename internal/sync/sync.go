@@ -29,13 +29,6 @@ func SyncCalendars(gCalCreds []byte, email, alfaApiKey string) error {
 		return fmt.Errorf("error at SyncCalendars: %w", err)
 	}
 
-	aRegLessons, err := alfa.GetRegularLessons(token, -1)
-	if err != nil {
-		return fmt.Errorf("error at SyncCalendars: %w", err)
-	}
-
-	aLessons = append(aLessons, aRegLessons...)
-
 	gcalService, err := gcal.GetService(context.Background(), gCalCreds)
 	if err != nil {
 		return fmt.Errorf("error at SyncCalendars: %w", err)

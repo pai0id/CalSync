@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -167,7 +168,6 @@ func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error
 	var res = []logic.Lesson{}
 	location, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {
-		fmt.Println("Error loading location:", err)
 		return nil, fmt.Errorf("error loading location: %w", err)
 	}
 	for i, l := range lessons {
@@ -201,8 +201,8 @@ func getDatesForDayOfWeek(start, end time.Time, targetDay time.Weekday) []time.T
 	if start.Before(t) {
 		start = t
 	}
-	if end.After(t.AddDate(0, 0, 7)) {
-		end = t.AddDate(0, 0, 7)
+	if end.After(t.AddDate(0, 1, 0)) {
+		end = t.AddDate(0, 1, 0)
 	}
 
 	if start.After(end) {
@@ -215,7 +215,7 @@ func getDatesForDayOfWeek(start, end time.Time, targetDay time.Weekday) []time.T
 
 	for !start.After(end) {
 		dates = append(dates, start)
-		start = start.AddDate(0, 0, 7)
+		start = start.AddDate(0, 1, 0)
 	}
 
 	return dates
@@ -225,7 +225,6 @@ func convertRegularLessons(lessons []regularLessonItem, names []string) ([]logic
 	var res = []logic.Lesson{}
 	location, err := time.LoadLocation("Europe/Moscow")
 	if err != nil {
-		fmt.Println("Error loading location:", err)
 		return nil, fmt.Errorf("error loading location: %w", err)
 	}
 	for i, l := range lessons {
@@ -265,7 +264,7 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 	var res []logic.Lesson
 
 	lessonReq := lessonRequest{Status: 1, Page: 0,
-		DateTo:   t.AddDate(0, 0, 7).Format("2006-01-02"),
+		DateTo:   t.AddDate(0, 1, 0).Format("2006-01-02"),
 		DateFrom: t.Format("2006-01-02"),
 	}
 	lessonResp := lessonResponse{}
@@ -415,11 +414,12 @@ func UpdateGroups(token string) error {
 
 func createLesson(token string, lesson logic.Lesson) error {
 	reqStruct := createLessonRequest{
-		Topic:        lesson.Name,
+		Topic:        strings.TrimSpace(lesson.Name),
 		LessonDate:   lesson.Date.Format("02.01.2006"),
 		RoomId:       roomIds[lesson.CalId],
 		TimeFrom:     lesson.TimeFrom.Format("15:04"),
-		Duration:     int(lesson.TimeTo.Sub(lesson.TimeFrom).Minutes()),
+		Duration:     int(lesson.TimeTo.Sub(lesson.TimeFrom).Minutes()) - 1,
+		TeacherIds:   []int{55},
 		LessonTypeId: 5,
 		SubjectId:    118,
 	}

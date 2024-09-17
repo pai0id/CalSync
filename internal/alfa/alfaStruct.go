@@ -96,6 +96,7 @@ type createLessonRequest struct {
 	RoomId       int    `json:"room_id"`
 	TimeFrom     string `json:"time_from"`
 	Duration     int    `json:"duration"`
+	TeacherIds   []int  `json:"teacher_ids"`
 	LessonTypeId int    `json:"lesson_type_id"`
 	SubjectId    int    `json:"subject_id"`
 }

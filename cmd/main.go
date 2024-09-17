@@ -2,7 +2,6 @@ package main
 
 import (
 	"CalSync/internal/sync"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -46,9 +45,9 @@ func main() {
 	s.Every(minutesPeriod).Minutes().Do(func() {
 		err := sync.SyncCalendars(gCalCreds, email, alfaApiKey)
 		if err != nil {
-			log.Fatalf("Failed to sync calendars: %v", err)
+			log.Printf("Failed to sync calendars: %w", err)
 		} else {
-			fmt.Println("Calendars synced successfully!")
+			log.Println("Calendars synced successfully!")
 		}
 	})
 

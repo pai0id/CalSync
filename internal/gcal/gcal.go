@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -169,7 +170,7 @@ func AddEvents(ctx context.Context, service *calendar.Service, lessons []logic.L
 		calendarID := calendarIDs[lesson.CalId]
 
 		event := &calendar.Event{
-			Summary:     lesson.Name,
+			Summary:     strings.TrimSpace(lesson.Name),
 			Start:       &calendar.EventDateTime{DateTime: lesson.TimeFrom.Format(time.RFC3339), TimeZone: "UTC"},
 			End:         &calendar.EventDateTime{DateTime: lesson.TimeTo.Format(time.RFC3339), TimeZone: "UTC"},
 			Description: fmt.Sprintf("Event scheduled for %s", lesson.Date.Format("2006-01-02")),
@@ -180,7 +181,7 @@ func AddEvents(ctx context.Context, service *calendar.Service, lessons []logic.L
 			return fmt.Errorf("could not insert event %s into calendar %s: %v", lesson.Name, calendarID, err)
 		}
 
-		fmt.Printf("Added event '%s' to calendar '%s'\n", lesson.Name, calendarID)
+		fmt.Printf("Added event '%v' to calendar '%s'\n", lesson, calendarID)
 	}
 
 	return nil

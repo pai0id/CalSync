@@ -7,7 +7,18 @@ from google.auth.transport.requests import Request
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-calIds = []
+calIds = [
+    "aa7dfbd43b5f0ffa3a63a57faae946d8bd317f3c45bfe221919ce5f7c90852fc@group.calendar.google.com",
+"567bfc5ca2de6bc54583aa4744cf049a65c451d2bd897d9dc003aa9dfa287a87@group.calendar.google.com",
+"59bfd0df6be1efe40b5f10c45d663cd1d14b924ebf3b709cfcd69fb09897138f@group.calendar.google.com",
+"f1e41b8ff60c54795946e150920b2971cdf929a015fee172824fb0e961accd42@group.calendar.google.com",
+"efee209e8160bf8bb891ab36abc86d7e3a8ea82dd2fd6a7d5cf81ac1a61fb42d@group.calendar.google.com",
+"e9c080d310635936318c85aa7c308baabbfb251eabd05342e52f47e20eae4816@group.calendar.google.com",
+"73982ef0ab637a3fc9d5645be9018b330669937add99b6825c7a09725bbe6df8@group.calendar.google.com",
+"6d8844a5a5e8b4bb4fcc83c7e0571640e11ff7c2e2f1989f79bee62fda5f57cb@group.calendar.google.com",
+"6bf6d9cce226a2072bbbf0c16a0c0f96af99c424d167f353d9ae0b57eb6da23f@group.calendar.google.com",
+"9ca57980980ce6b06a929b6eedbc624b8a1d3227733fb86946d65242e5752ae4@group.calendar.google.com",
+]
 
 def authenticate_google_calendar():
     """Authenticate with Google Calendar API and return a service object."""

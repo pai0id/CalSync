@@ -444,6 +444,7 @@ func createLesson(token string, lesson logic.Lesson) error {
 	}
 	defer resp.Body.Close()
 
+	log.Printf("Created: %v\n", reqStruct)
 	log.Printf("createLesson: request response code %d\n", resp.StatusCode)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("createLesson: response code %d", resp.StatusCode)

@@ -457,7 +457,7 @@ func AddEvents(token string, lessons []logic.Lesson) error {
 	for _, lesson := range lessons {
 		err := createLesson(token, lesson)
 		if err != nil {
-			return fmt.Errorf("AddEvents: %w", err)
+			fmt.Printf("AddEvents: %v", err)
 		}
 	}
 	return nil

@@ -178,7 +178,7 @@ func AddEvents(ctx context.Context, service *calendar.Service, lessons []logic.L
 
 		_, err := service.Events.Insert(calendarID, event).Context(ctx).Do()
 		if err != nil {
-			return fmt.Errorf("could not insert event %s into calendar %s: %v", lesson.Name, calendarID, err)
+			fmt.Printf("could not insert event %s into calendar %s: %v", lesson.Name, calendarID, err)
 		}
 
 		fmt.Printf("Added event '%v' to calendar '%s'\n", lesson, calendarID)

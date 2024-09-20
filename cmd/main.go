@@ -30,12 +30,6 @@ func main() {
 		log.Fatalf("Email or API key is missing in the env/alfacred.env file")
 	}
 
-	// Получение google calendar credentials
-	gCalCreds, err := os.ReadFile(gCalCredsFile)
-	if err != nil {
-		log.Fatalf("Unable to read gCal secret file: %v", err)
-	}
-
 	s := gocron.NewScheduler(time.UTC)
 	if err != nil {
 		log.Fatalf("Unable to create new scheduler: %v", err)
@@ -43,9 +37,14 @@ func main() {
 
 	// Cинхронизация каждые 30 минут
 	s.Every(minutesPeriod).Minutes().Do(func() {
-		err := sync.SyncCalendars(gCalCreds, email, alfaApiKey)
+		// Получение google calendar credentials
+		gCalCreds, err := os.ReadFile(gCalCredsFile)
 		if err != nil {
-			log.Printf("Failed to sync calendars: %w", err)
+			log.Printf("Unable to read gCal secret file: %v", err)
+		}
+		err = sync.SyncCalendars(gCalCreds, email, alfaApiKey)
+		if err != nil {
+			log.Printf("Failed to sync calendars: %v", err)
 		} else {
 			log.Println("Calendars synced successfully!")
 		}

@@ -183,13 +183,20 @@ func convertLessons(lessons []lessonItem, names []string) ([]logic.Lesson, error
 		if err != nil {
 			return nil, fmt.Errorf("convertLessons: %w", err)
 		}
-		res = append(res, logic.Lesson{
+		newLesson := logic.Lesson{
 			Name:     names[i],
 			Date:     date.Truncate(24 * time.Hour).In(location).Add(time.Hour * -3),
 			CalId:    getCalId(l.RoomId),
 			TimeFrom: timeFrom.In(location).Add(time.Hour * -3).Truncate(time.Minute),
 			TimeTo:   timeTo.In(location).Add(time.Hour * -3).Truncate(time.Minute),
-		})
+		}
+		if strings.HasPrefix(l.Note, "Google") {
+			newLesson.ToAdd = false
+		} else {
+			newLesson.ToAdd = true
+		}
+
+		res = append(res, newLesson)
 	}
 	return res, nil
 }
@@ -291,16 +298,17 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 
 	var names = make([]string, 0, len(lessons))
 	for _, l := range lessons {
-		name := ""
-		for _, c := range l.Customers {
-			name = fmt.Sprintf("%s %s", name, customers[c])
-		}
-		for _, g := range l.Groups {
-			name = fmt.Sprintf("%s %s", name, groups[g])
-		}
-		if name == "" {
-			name = "Занятие"
-		}
+		// name := ""
+		// for _, c := range l.Customers {
+		// 	name = fmt.Sprintf("%s %s", name, customers[c])
+		// }
+		// for _, g := range l.Groups {
+		// 	name = fmt.Sprintf("%s %s", name, groups[g])
+		// }
+		// if name == "" {
+		// 	name = "Занятие"
+		// }
+		name := fmt.Sprintf("Alfa: %d", l.ID)
 		names = append(names, name)
 	}
 
@@ -455,6 +463,9 @@ func createLesson(token string, lesson logic.Lesson) error {
 
 func AddEvents(token string, lessons []logic.Lesson) error {
 	for _, lesson := range lessons {
+		if !lesson.ToAdd {
+			continue
+		}
 		err := createLesson(token, lesson)
 		if err != nil {
 			fmt.Printf("AddEvents: %v", err)

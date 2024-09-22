@@ -68,6 +68,7 @@ type lessonItem struct {
 	RoomId    int    `json:"room_id"`
 	TimeFrom  string `json:"time_from"`
 	TimeTo    string `json:"time_to"`
+	Note      string `json:"note"`
 }
 
 const customerClass = "Customer"

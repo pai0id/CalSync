@@ -4,9 +4,7 @@ import (
 	"CalSync/internal/sync"
 	"log"
 	"os"
-	"time"
 
-	"github.com/go-co-op/gocron"
 	"github.com/joho/godotenv"
 )
 
@@ -15,7 +13,7 @@ const (
 	gCalCredsFile = "env/credentials.json"
 )
 
-const minutesPeriod = 30
+// const minutesPeriod = 30
 
 func main() {
 	err := godotenv.Load(alfaCredsFile)
@@ -30,25 +28,25 @@ func main() {
 		log.Fatalf("Email or API key is missing in the env/alfacred.env file")
 	}
 
-	s := gocron.NewScheduler(time.UTC)
+	// s := gocron.NewScheduler(time.UTC)
+	// if err != nil {
+	// 	log.Fatalf("Unable to create new scheduler: %v", err)
+	// }
+
+	// // Cинхронизация каждые 30 минут
+	// s.Every(minutesPeriod).Minutes().Do(func() {
+	// 	// Получение google calendar credentials
+	gCalCreds, err := os.ReadFile(gCalCredsFile)
 	if err != nil {
-		log.Fatalf("Unable to create new scheduler: %v", err)
+		log.Printf("Unable to read gCal secret file: %v", err)
 	}
+	err = sync.SyncCalendars(gCalCreds, email, alfaApiKey)
+	if err != nil {
+		log.Printf("Failed to sync calendars: %v\n", err)
+	} else {
+		log.Println("Calendars synced successfully!")
+	}
+	// })
 
-	// Cинхронизация каждые 30 минут
-	s.Every(minutesPeriod).Minutes().Do(func() {
-		// Получение google calendar credentials
-		gCalCreds, err := os.ReadFile(gCalCredsFile)
-		if err != nil {
-			log.Printf("Unable to read gCal secret file: %v", err)
-		}
-		err = sync.SyncCalendars(gCalCreds, email, alfaApiKey)
-		if err != nil {
-			log.Printf("Failed to sync calendars: %v", err)
-		} else {
-			log.Println("Calendars synced successfully!")
-		}
-	})
-
-	s.StartBlocking()
+	// s.StartBlocking()
 }

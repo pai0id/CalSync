@@ -1,9 +1,11 @@
 import os
 import pickle
 import datetime
+from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
@@ -52,7 +54,38 @@ def delete_all_events(calendar_id, service):
             except Exception as e:
                 print(f"An error occurred: {e}")
 
+def delete_events_after_date(calendar_id, service, after_date):
+    service = authenticate_google_calendar()
+    
+    after_date_rfc3339 = after_date.isoformat() + 'Z'
+    
+    events_result = service.events().list(
+        calendarId=calendar_id,
+        timeMin=after_date_rfc3339,
+        singleEvents=True,
+        orderBy='startTime'
+    ).execute()
+    
+    events = events_result.get('items', [])
+    
+    if not events:
+        print('No events found.')
+        return
+
+    
+    for event in events:
+        try:
+            event['summary']
+        except Exception:
+            print(f'No summary found for event ID: {event["id"]}')
+            service.events().delete(calendarId=calendar_id, eventId=event['id']).execute()
+            continue
+        if not event['summary'].startswith("MUSbooking"):
+            print(f'Deleting event: {event["summary"]} (ID: {event["id"]})')
+            service.events().delete(calendarId=calendar_id, eventId=event['id']).execute()
+
+
 if __name__ == '__main__':
     service = authenticate_google_calendar()
     for calId in calIds:
-        delete_all_events(calId, service)
+        delete_events_after_date(calId, service, datetime(2024, 9, 28))

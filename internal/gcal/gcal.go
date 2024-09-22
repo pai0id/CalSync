@@ -114,11 +114,16 @@ func convertGoogleEventToLesson(event *calendar.Event, calId int) (*logic.Lesson
 	}
 
 	lesson := &logic.Lesson{
-		Name:     event.Summary,
+		Name:     fmt.Sprintf("Google: %s", event.Summary),
 		Date:     startTime.Truncate(24 * time.Hour).Add(time.Hour * -3),
 		CalId:    calId,
 		TimeFrom: startTime.Truncate(time.Minute),
 		TimeTo:   endTime.Truncate(time.Minute),
+	}
+	if strings.HasPrefix(event.Summary, "Alfa") {
+		lesson.ToAdd = false
+	} else {
+		lesson.ToAdd = true
 	}
 
 	return lesson, nil
@@ -128,12 +133,12 @@ func convertGoogleEventToLesson(event *calendar.Event, calId int) (*logic.Lesson
 func GetLessons(srv *calendar.Service, calId int) ([]logic.Lesson, error) {
 	var lessons []logic.Lesson
 
-	t := time.Now().Truncate(24 * time.Hour)
+	t := time.Now().Truncate(24 * time.Hour).Add(time.Hour * -3)
 
 	if calId == -1 {
 		for i, id := range calendarIDs {
 			events, err := srv.Events.List(id).ShowDeleted(false).
-				SingleEvents(true).TimeMin(t.Format(time.RFC3339)).TimeMax(t.AddDate(0, 1, 1).Format(time.RFC3339)).OrderBy("startTime").Do()
+				SingleEvents(true).TimeMin(t.Add(time.Second * -1).Format(time.RFC3339)).TimeMax(t.AddDate(0, 1, 1).Format(time.RFC3339)).OrderBy("startTime").Do()
 			if err != nil {
 				return nil, fmt.Errorf("unable to retrieve events from calendar: %w", err)
 			}
@@ -167,6 +172,9 @@ func GetLessons(srv *calendar.Service, calId int) ([]logic.Lesson, error) {
 
 func AddEvents(ctx context.Context, service *calendar.Service, lessons []logic.Lesson) error {
 	for _, lesson := range lessons {
+		if !lesson.ToAdd {
+			continue
+		}
 		calendarID := calendarIDs[lesson.CalId]
 
 		event := &calendar.Event{

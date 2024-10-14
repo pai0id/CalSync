@@ -1,11 +1,14 @@
 run:
-	@go run  cmd/main.go
+	CGO_ENABLED=0 go run cmd/main.go
 
 build:
-	@go build -o app.exe cmd/main.go
+	CGO_ENABLED=0 go build cmd/main.go && mv main app.exe
 
 tidy:
-	@go mod tidy
+	go mod tidy
 
 clean_cals:
 	python3 clean_cal.py
+
+clean:
+	rm *.exe

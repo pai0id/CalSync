@@ -38,6 +38,14 @@ var roomIds = []int{
 
 var customers = map[int]string{}
 var groups = map[int]string{}
+var types = map[int]string{
+	1: "Индивидувльный",
+	2: "Групповой",
+	3: "Пробный",
+	4: "Группа online",
+	5: "Аренда",
+	6: "Мероприятие",
+}
 
 func getCalId(roomId int) int {
 	for i, v := range roomIds {
@@ -308,7 +316,10 @@ func GetLessons(token string, calId int) ([]logic.Lesson, error) {
 		// if name == "" {
 		// 	name = "Занятие"
 		// }
-		name := fmt.Sprintf("Alfa: %d", l.ID)
+		name := fmt.Sprintf("Alfa: %d, %s", l.ID, l.Note)
+		if v, ok := types[l.TypeID]; ok {
+			name = fmt.Sprintf("%s (%s)", name, v)
+		}
 		names = append(names, name)
 	}
 

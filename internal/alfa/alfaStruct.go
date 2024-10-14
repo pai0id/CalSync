@@ -69,6 +69,7 @@ type lessonItem struct {
 	TimeFrom  string `json:"time_from"`
 	TimeTo    string `json:"time_to"`
 	Note      string `json:"note"`
+	TypeID    int    `json:"lesson_type_id"`
 }
 
 const customerClass = "Customer"
